@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Зимний Филворд</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background-image: url('images/winter-bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Снежинки анимация */
+        @keyframes snowfall {
+            0% { transform: translateY(-10px) translateX(0); opacity: 1; }
+            100% { transform: translateY(100vh) translateX(20px); opacity: 0.3; }
+        }
+
+        .snowflake {
+            position: fixed;
+            top: -10px;
+            color: white;
+            font-size: 20px;
+            opacity: 0.8;
+            pointer-events: none;
+            animation: snowfall linear infinite;
+            z-index: 1;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+            align-items: flex-start;
+            position: relative;
+            z-index: 10;
+        }
+
+        .game-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(230, 247, 255, 0.9));
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 15px 50px rgba(0, 50, 100, 0.4), inset 0 0 30px rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(15px);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            flex: 1;
+        }
+
+        .title {
+            text-align: center;
+            background: linear-gradient(45deg, #0066cc, #00ccff, #0066cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 32px;
+            margin-bottom: 25px;
+            text-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 4px;
+            margin-bottom: 25px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 10px;
+            background: rgba(200, 230, 255, 0.2);
+            border-radius: 15px;
+            user-select: none;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, #ffffff, #e6f7ff);
+            border: 2px solid #3399ff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #003366;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 3px 8px rgba(0, 100, 200, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            user-select: none;
+            position: relative;
+        }
+
+        .cell:hover:not(.found) {
+            background: linear-gradient(145deg, #e6f7ff, #cce6ff);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 150, 255, 0.4);
+        }
+
+        .cell.selected {
+            background: linear-gradient(145deg, #66ccff, #3399ff);
+            border: 3px solid #0066cc;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 100, 255, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .cell.found {
+            background: linear-gradient(145deg, #ff6b6b, #ee5555);
+            color: white;
+            border: 3px solid #cc0000;
+            pointer-events: none;
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.4);
+            animation: foundPulse 0.5s ease;
+        }
+
+        @keyframes foundPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .score-section {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #fffacd, #fff8dc);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(255, 200, 0, 0.3);
+            border: 3px solid rgba(255, 215, 0, 0.6);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .score-section p {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #cc6600;
+            font-weight: bold;
+        }
+
+        .score {
+            font-size: 36px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6600, #ffcc00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .timer {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 15px;
+        }
+
+        .timer.warning {
+            color: #ff6600;
+            animation: pulse 1s infinite;
+        }
+
+        .timer.danger {
+            color: #cc0000;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+        }
+
+        /* Модальное окно победы */
+        .victory-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .victory-content {
+            background: linear-gradient(135deg, #fff, #fffacd);
+            margin: 10% auto;
+            padding: 40px;
+            border: 5px solid #ffcc00;
+            border-radius: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(255, 215, 0, 0.8);
+            text-align: center;
+            position: relative;
+            animation: victoryAppear 0.5s ease;
+        }
+
+        @keyframes victoryAppear {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .victory-content h2 {
+            font-size: 48px;
+            color: #ff6600;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(255, 100, 0, 0.3);
+        }
+
+        .victory-content p {
+            font-size: 24px;
+            color: #cc6600;
+            margin-bottom: 30px;
+        }
+
+        /* Фейерверк */
+        .firework {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2001;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Модальное окно времени истекло */
+        .timeout-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .timeout-content {
+            background: linear-gradient(135deg, #fff, #ffe6e6);
+            margin: 15% auto;
+            padding: 40px;
+            border: 5px solid #ff6b6b;
+            border-radius: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(255, 0, 0, 0.5);
+            text-align: center;
+            animation: victoryAppear 0.5s ease;
+        }
+
+        .timeout-content h2 {
+            font-size: 36px;
+            color: #cc0000;
+            margin-bottom: 20px;
+        }
+
+        .timeout-content p {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .sound-btn, .info-btn {
+            position: absolute;
+            top: 20px;
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #fff, #e6f7ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 100, 200, 0.3);
+            transition: all 0.3s;
+            z-index: 100;
+            border: 3px solid rgba(51, 153, 255, 0.5);
+        }
+
+        .sound-btn {
+            right: 20px;
+        }
+
+        .info-btn {
+            right: 90px;
+        }
+
+        .sound-btn:hover, .info-btn:hover {
+            transform: scale(1.15) rotate(5deg);
+            box-shadow: 0 8px 20px rgba(0, 150, 255, 0.5);
+        }
+
+        .sidebar {
+            background: linear-gradient(135deg, rgba(255, 250, 240, 0.95), rgba(255, 240, 245, 0.9));
+            padding: 25px;
+            border-radius: 25px;
+            box-shadow: 0 15px 50px rgba(200, 0, 50, 0.3), inset 0 0 30px rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(15px);
+            min-width: 280px;
+            border: 3px solid rgba(255, 200, 200, 0.6);
+        }
+
+        .sidebar h2 {
+            background: linear-gradient(45deg, #cc0000, #ff6b6b, #cc0000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .words-list {
+            list-style: none;
+        }
+
+        .words-list li {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff, #ffe6e6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 18px;
+            color: #666;
+            border: 2px solid #ffcccc;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .words-list li.found-word {
+            background: linear-gradient(135deg, #90EE90, #66cc66);
+            color: white;
+            border: 2px solid #00aa00;
+            box-shadow: 0 4px 10px rgba(0, 200, 0, 0.3);
+            transform: scale(1.02);
+        }
+
+        .word-text {
+            font-weight: bold;
+        }
+
+        .star {
+            font-size: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .found-word .star {
+            opacity: 1;
+            animation: starSpin 0.5s ease;
+        }
+
+        @keyframes starSpin {
+            0% { transform: rotate(0deg) scale(0); }
+            50% { transform: rotate(180deg) scale(1.3); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        /* Модальное окно инструкции */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #fff, #e6f7ff);
+            margin: 5% auto;
+            padding: 30px;
+            border: 3px solid #3399ff;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .close {
+            color: #cc0000;
+            float: right;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+        }
+
+        .close:hover {
+            color: #ff0000;
+            transform: scale(1.2);
+        }
+
+        .modal h2 {
+            color: #0066cc;
+            margin-bottom: 15px;
+            font-size: 26px;
+        }
+
+        .modal p {
+            color: #333;
+            line-height: 1.8;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 899px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-width: 600px;
+            }
+
+            .cell {
+                font-size: 18px;
+            }
+
+            .title {
+                font-size: 26px;
+            }
+
+            .info-btn {
+                right: auto;
+                left: 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .cell {
+                font-size: 16px;
+            }
+
+            .title {
+                font-size: 22px;
+            }
+
+            .score-section p {
+                font-size: 18px;
+            }
+
+            .score {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Снежинки для атмосферы -->
+    <div class="snowflake" style="left: 10%; animation-duration: 10s; animation-delay: 0s;">❄</div>
+    <div class="snowflake" style="left: 20%; animation-duration: 8s; animation-delay: 1s;">❅</div>
+    <div class="snowflake" style="left: 30%; animation-duration: 12s; animation-delay: 2s;">❆</div>
+    <div class="snowflake" style="left: 40%; animation-duration: 9s; animation-delay: 3s;">❄</div>
+    <div class="snowflake" style="left: 50%; animation-duration: 11s; animation-delay: 0.5s;">❅</div>
+    <div class="snowflake" style="left: 60%; animation-duration: 10s; animation-delay: 1.5s;">❆</div>
+    <div class="snowflake" style="left: 70%; animation-duration: 8s; animation-delay: 2.5s;">❄</div>
+    <div class="snowflake" style="left: 80%; animation-duration: 12s; animation-delay: 0.8s;">❅</div>
+    <div class="snowflake" style="left: 90%; animation-duration: 9s; animation-delay: 2s;">❆</div>
+
+    <div class="info-btn" onclick="showInstructions()" title="Инструкция">ℹ️</div>
+    <div class="sound-btn" id="soundToggle" title="Вкл/Выкл звук">🔊</div>
+
+    <!-- Модальное окно инструкции -->
+    <div id="instructionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeInstructions()">&times;</span>
+            <h2>🎄 Как играть 🎄</h2>
+            <p><strong>Цель игры:</strong> Найти все 10 спрятанных слов в сетке букв.</p>
+            <p><strong>Правила:</strong></p>
+            <p>• Нажмите и удерживайте кнопку мыши на первой букве слова</p>
+            <p>• Проведите мышкой по буквам слова, не отпуская кнопку</p>
+            <p>• Слова располагаются только горизонтально или вертикально</p>
+            <p>• Отпустите кнопку мыши на последней букве</p>
+            <p>• Если слово правильное, оно подсветится красным!</p>
+            <p>• Если неправильное - выделение исчезнет</p>
+            <p>• За каждое найденное слово вы получаете 10 баллов</p>
+            <p><strong>Удачи! 🎅</strong></p>
+        </div>
+    </div>
+
+    <!-- Модальное окно победы -->
+    <div id="victoryModal" class="victory-modal">
+        <div class="victory-content">
+            <h2>🎉 ПОБЕДА! 🎉</h2>
+            <p>Поздравляем! Вы нашли все слова!</p>
+            <p>Время: <span id="victoryTime"></span></p>
+            <p>Очки: <span id="victoryScore"></span></p>
+            <button class="restart-btn" onclick="restartGame()">🎄 Играть ещё 🎄</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно истечения времени -->
+    <div id="timeoutModal" class="timeout-modal">
+        <div class="timeout-content">
+            <h2>⏰ Время истекло! ⏰</h2>
+            <p>Вы нашли <span id="timeoutFound"></span> из 10 слов</p>
+            <p>Очки: <span id="timeoutScore"></span></p>
+            <button class="restart-btn" onclick="restartGame()">🔄 Повторить 🔄</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="game-content">
+            <h1 class="title">🎄 Словарные слова ❄️</h1>
+            
+            <!-- Таймер -->
+            <div class="timer" id="timer">⏱️ 3:00</div>
+            
+            <div class="grid" id="grid"></div>
+            
+            <!-- Счёт под филвордом -->
+            <div class="score-section">
+                <p>Найдено: <span class="score" id="foundCount">0</span> / 10</p>
+                <p>Очки: <span class="score" id="scoreDisplay">0</span></p>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <h2>🎁 Найди слова 🎁</h2>
+            <ul class="words-list" id="wordsList"></ul>
+        </div>
+    </div>
+
+    <!-- Звуки -->
+		<audio id="clickSound" preload="auto">
+		<source src="audio/click.mp3" type="audio/mpeg">
+		</audio>
+
+		<audio id="successSound" preload="auto">
+  <!-- звук, когда слово найдено -->
+		<source src="audio/word.mp3" type="audio/mpeg">
+		</audio>
+
+	<audio id="victorySound" preload="auto">
+		<!-- основной звук победы -->
+	<source src="audio/victory.mp3" type="audio/mpeg">
+	</audio>
+
+	<audio id="fireworkSound" preload="auto">
+		<!-- звук фейерверка -->
+		<source src="audio/firework.mp3" type="audio/mpeg">
+	</audio>
+	<audio id="timeoutSound" preload="auto">
+    <source src="audio/timeout.mp3" type="audio/mpeg">
+</audio>
+
+
+
+    <script>
+        // Список слов для поиска
+        const WORDS = ['эмблема', 'изжога', 'каморка', 'бассейн', 'гектар', 'привилегия', 'гостиная', 'типография', 'бахрома', 'маляр'];
+        
+        // Игровое состояние
+        let grid = [];
+        let selectedCells = [];
+        let foundWords = new Set();
+        let foundWordPositions = new Map();
+        let score = 0;
+        let soundEnabled = true;
+        let isMouseDown = false;
+        let startCell = null;
+        let timeLeft = 180; // 3 минуты в секундах
+        let timerInterval = null;
+        let gameActive = true;
+
+        // Инициализация сетки с заданным полем
+        function initGrid() {
+            // Поле из приложенного изображения (12x12)
+            const predefinedGrid = [
+                ['п', 'л', 'г', 'з', 'ц', 'е', 'ы', 'м', 'б', 'и', 'ь', 'а'],
+                ['р', 'и', 'е', 'д', 'з', 'л', 'щ', 'и', 'а', 'г', 'р', 'я'],
+                ['и', 'б', 'к', 'о', 'и', 'д', 'ф', 'к', 'й', 'о', 'ф', 'с'],
+                ['в', 'а', 'т', 'н', 'р', 'м', 'н', 'с', 'п', 'с', 'о', 'з'],
+                ['и', 'с', 'а', 'ы', 'ф', 'ь', 'н', 'ы', 'ж', 'т', 'э', 'и'],
+                ['л', 'с', 'р', 'у', 'м', 'а', 'л', 'я', 'р', 'и', 'м', 'о'],
+                ['е', 'е', 'и', 'з', 'ж', 'о', 'г', 'а', 'е', 'н', 'б', 'ф'],
+                ['г', 'й', 'к', 'а', 'м', 'о', 'р', 'к', 'а', 'а', 'л', 'ь'],
+                ['и', 'н', 'й', 'ф', 'ы', 'е', 'р', 'о', 'э', 'я', 'е', 'ь'],
+                ['я', 'ё', 'з', 'л', 'й', 'ф', 'ь', 'с', 'й', 'у', 'м', 'ы'],
+                ['р', 'ч', 'б', 'а', 'х', 'р', 'о', 'м', 'а', 'ж', 'а', 'у'],
+                ['ш', 'т', 'и', 'п', 'о', 'г', 'р', 'а', 'ф', 'и', 'я', 'ь']
+            ];
+            
+            // Копируем заданное поле
+            grid = predefinedGrid.map(row => [...row]);
+        }
+        
+        // Вспомогательная функция для получения слова из сетки
+        function getWord(r1, c1, r2, c2) {
+            let word = '';
+            if (r1 === r2) {
+                // Горизонталь
+                for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
+                    if (c < grid[r1].length) word += grid[r1][c];
+                }
+            } else if (c1 === c2) {
+                // Вертикаль
+                for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+                    if (r < grid.length) word += grid[r][c1];
+                }
+            }
+            return word;
+        }
+
+        // Отрисовка сетки
+        function renderGrid() {
+            const gridEl = document.getElementById('grid');
+            gridEl.innerHTML = '';
+            
+            for (let r = 0; r < 12; r++) {
+                for (let c = 0; c < 12; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.textContent = grid[r][c].toUpperCase();
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    
+                    // Обработчики для перетаскивания мышью
+                    cell.addEventListener('mousedown', handleMouseDown);
+                    cell.addEventListener('mouseenter', handleMouseEnter);
+                    cell.addEventListener('mouseup', handleMouseUp);
+                    
+                    gridEl.appendChild(cell);
+                }
+            }
+            
+            // Глобальный обработчик отпускания мыши
+            document.addEventListener('mouseup', handleGlobalMouseUp);
+        }
+
+        // Начало выделения (нажатие мыши)
+        function handleMouseDown(e) {
+            e.preventDefault();
+            if (!gameActive) return;
+            
+            const row = parseInt(this.dataset.row);
+            const col = parseInt(this.dataset.col);
+            
+            if (this.classList.contains('found')) return;
+            
+            isMouseDown = true;
+            startCell = { row, col };
+            selectedCells = [{ row, col }];
+            
+            this.classList.add('selected');
+            playSound('clickSound');
+        }
+
+        // Проведение мышью по клеткам
+        function handleMouseEnter(e) {
+            if (!isMouseDown || !startCell || !gameActive) return;
+            
+            const row = parseInt(this.dataset.row);
+            const col = parseInt(this.dataset.col);
+            
+            if (this.classList.contains('found')) return;
+            
+            // Проверяем, что движемся по прямой линии
+            if (!isInLine(startCell, { row, col })) return;
+            
+            // Добавляем только если клетка ещё не выбрана
+            const alreadySelected = selectedCells.some(c => c.row === row && c.col === col);
+            if (!alreadySelected) {
+                selectedCells.push({ row, col });
+                this.classList.add('selected');
+            }
+        }
+
+        // Проверка, находятся ли клетки на одной прямой
+        function isInLine(cell1, cell2) {
+            // Горизонталь или вертикаль
+            return cell1.row === cell2.row || cell1.col === cell2.col;
+        }
+
+        // Отпускание мыши на клетке
+        function handleMouseUp(e) {
+            if (!isMouseDown) return;
+            checkSelectedWord();
+        }
+
+        // Глобальное отпускание мыши (вне сетки)
+        function handleGlobalMouseUp(e) {
+            if (!isMouseDown) return;
+            isMouseDown = false;
+            
+            // Если мышь отпущена не на клетке - сбрасываем
+            if (!e.target.classList.contains('cell')) {
+                clearSelection();
+            }
+        }
+
+        // Проверка выбранного слова
+        function checkSelectedWord() {
+            isMouseDown = false;
+            
+            if (selectedCells.length < 2) {
+                clearSelection();
+                return;
+            }
+
+            // Сортируем клетки
+            const sortedCells = sortCellsInLine(selectedCells);
+            if (!sortedCells) {
+                clearSelection();
+                return;
+            }
+
+            const word = sortedCells.map(c => grid[c.row][c.col]).join('');
+
+            // Проверяем, есть ли такое слово в списке
+            if (WORDS.includes(word) && !foundWords.has(word)) {
+                // Слово найдено!
+                foundWords.add(word);
+                score += 10;
+                
+                foundWordPositions.set(word, sortedCells);
+                
+                // Подсвечиваем клетки как найденные
+                sortedCells.forEach(c => {
+                    const cellEl = document.querySelector(`[data-row="${c.row}"][data-col="${c.col}"]`);
+                    cellEl.classList.remove('selected');
+                    cellEl.classList.add('found');
+                });
+
+                markWordAsFound(word);
+                updateScore();
+                playSound('successSound');
+                selectedCells = [];
+                startCell = null;
+
+                // Проверка на победу
+                if (foundWords.size === WORDS.length) {
+                    gameActive = false;
+                    stopTimer();
+                    setTimeout(() => {
+                        showVictory();
+                    }, 500);
+                }
+            } else {
+                // Неверное слово - убираем выделение
+                clearSelection();
+            }
+        }
+
+        // Очистка выбора
+        function clearSelection() {
+            selectedCells.forEach(c => {
+                const cellEl = document.querySelector(`[data-row="${c.row}"][data-col="${c.col}"]`);
+                if (cellEl && !cellEl.classList.contains('found')) {
+                    cellEl.classList.remove('selected');
+                }
+            });
+            selectedCells = [];
+            startCell = null;
+            isMouseDown = false;
+        }
+
+        // Сортировка клеток для проверки линии (только горизонталь и вертикаль)
+        function sortCellsInLine(cells) {
+            if (cells.length < 2) return cells;
+
+            // Проверяем, все ли клетки в одной строке или в одном столбце
+            const allSameRow = cells.every(c => c.row === cells[0].row);
+            const allSameCol = cells.every(c => c.col === cells[0].col);
+
+            if (!allSameRow && !allSameCol) {
+                return null;
+            }
+
+            // Сортируем клетки
+            const sorted = [...cells].sort((a, b) => {
+                if (allSameRow) return a.col - b.col;
+                return a.row - b.row;
+            });
+
+            // Проверяем непрерывность
+            for (let i = 1; i < sorted.length; i++) {
+                if (allSameRow) {
+                    if (sorted[i].col !== sorted[i-1].col + 1) return null;
+                } else {
+                    if (sorted[i].row !== sorted[i-1].row + 1) return null;
+                }
+            }
+
+            return sorted;
+        }
+
+        // Отрисовка списка всех слов
+        function renderWordsList() {
+            const listEl = document.getElementById('wordsList');
+            listEl.innerHTML = '';
+            
+            WORDS.forEach(word => {
+                const li = document.createElement('li');
+                li.id = `word-${word}`;
+                li.innerHTML = `
+                    <span class="word-text">${word.toUpperCase()}</span>
+                    <span class="star">⭐</span>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        // Пометить слово как найденное
+        function markWordAsFound(word) {
+            const wordEl = document.getElementById(`word-${word}`);
+            if (wordEl) {
+                wordEl.classList.add('found-word');
+            }
+        }
+
+        // Обновление счёта
+        function updateScore() {
+            document.getElementById('foundCount').textContent = foundWords.size;
+            document.getElementById('scoreDisplay').textContent = score;
+        }
+
+        // Воспроизведение звука
+        function playSound(soundId) {
+            if (!soundEnabled) return;
+            const sound = document.getElementById(soundId);
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log('Звук не может быть воспроизведён:', e));
+        }
+
+        // Переключение звука
+        document.getElementById('soundToggle').onclick = function() {
+            soundEnabled = !soundEnabled;
+            this.textContent = soundEnabled ? '🔊' : '🔇';
+        };
+
+        // Показать инструкцию
+        function showInstructions() {
+            document.getElementById('instructionModal').style.display = 'block';
+        }
+
+        // Закрыть инструкцию
+        function closeInstructions() {
+            document.getElementById('instructionModal').style.display = 'none';
+        }
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const modal = document.getElementById('instructionModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Таймер
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    stopTimer();
+                    gameActive = false;
+                    showTimeout();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Изменение цвета в зависимости от времени
+            timerEl.classList.remove('warning', 'danger');
+            if (timeLeft <= 30) {
+                timerEl.classList.add('danger');
+            } else if (timeLeft <= 60) {
+                timerEl.classList.add('warning');
+            }
+        }
+
+        // Показать окно победы
+	function showVictory() {
+    const minutes = Math.floor((180 - timeLeft) / 60);
+    const seconds = (180 - timeLeft) % 60;
+    const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    document.getElementById('victoryTime').textContent = timeStr;
+    document.getElementById('victoryScore').textContent = score;
+    document.getElementById('victoryModal').style.display = 'block';
+
+    // звуки победы
+    playSound('victorySound');   // фанфары
+    playSound('fireworkSound');  // фейерверк
+
+    // анимация фейерверка на экране
+    launchFireworks();
+}
+        // Показать окно истечения времени
+        function showTimeout() {
+            document.getElementById('timeoutFound').textContent = foundWords.size;
+            document.getElementById('timeoutScore').textContent = score;
+            document.getElementById('timeoutModal').style.display = 'block';
+			
+			// звук "время истекло"
+    playSound('timeoutSound');
+        }
+
+        // Фейерверк
+        function launchFireworks() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff6600', '#ff0066'];
+            let fireworkCount = 0;
+            
+            const fireworkInterval = setInterval(() => {
+                if (fireworkCount >= 15) {
+                    clearInterval(fireworkInterval);
+                    return;
+                }
+                
+                // Случайная позиция для фейерверка
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * (window.innerHeight * 0.6);
+                
+                // Создаём частицы
+                for (let i = 0; i < 30; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'firework';
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    const angle = (Math.PI * 2 * i) / 30;
+                    const velocity = 100 + Math.random() * 100;
+                    const tx = Math.cos(angle) * velocity;
+                    const ty = Math.sin(angle) * velocity;
+                    
+                    particle.style.setProperty('--tx', tx + 'px');
+                    particle.style.setProperty('--ty', ty + 'px');
+                    particle.style.animation = 'explode 1s ease-out forwards';
+                    
+                    document.body.appendChild(particle);
+                    
+                    setTimeout(() => particle.remove(), 1000);
+                }
+                
+                fireworkCount++;
+            }, 300);
+        }
+
+        // Перезапуск игры
+        function restartGame() {
+            // Скрываем модальные окна
+            document.getElementById('victoryModal').style.display = 'none';
+            document.getElementById('timeoutModal').style.display = 'none';
+            
+            // Сбрасываем состояние
+            foundWords.clear();
+            foundWordPositions.clear();
+            score = 0;
+            selectedCells = [];
+            startCell = null;
+            isMouseDown = false;
+            timeLeft = 180;
+            gameActive = true;
+            
+            // Перерисовываем всё
+            initGrid();
+            renderGrid();
+            renderWordsList();
+            updateScore();
+            
+            // Запускаем таймер заново
+            stopTimer();
+            startTimer();
+        }
+
+        // Инициализация игры
+        initGrid();
+        renderGrid();
+        renderWordsList();
+        startTimer();
+    </script>
+</body>
+</html>
