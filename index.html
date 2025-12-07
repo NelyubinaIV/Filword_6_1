@@ -719,18 +719,34 @@
         }
 		// Обёртки: переводим pointer-события в уже написанную логику мыши
 		function handlePointerDown(e) {
-		e.preventDefault();                 // чтобы не дёргался скролл
-		handleMouseDown.call(this, e);
-	}
+    e.preventDefault(); // чтобы не дёргался скролл и не было зума на телефоне
+
+    // Захватываем pointer, чтобы дальше получать все pointermove/pointerup,
+    // даже если палец "уехал" с первой клетки
+    if (typeof this.setPointerCapture === 'function' && e.pointerId !== undefined) {
+        this.setPointerCapture(e.pointerId);
+    }
+
+    handleMouseDown.call(this, e);
+}
 
 		function handlePointerEnter(e) {
 		handleMouseEnter.call(this, e);
 	}
 
 		function handlePointerMove(e) {
-    // при движении пальцем повторно используем ту же логику, что и при заходе в клетку
-    handleMouseEnter.call(this, e);
-	}
+    // Если палец не зажат или игра не активна — ничего не делаем
+    if (!isMouseDown || !startCell || !gameActive) return;
+
+    // Находим, над какой клеткой сейчас находится палец / курсор
+    const elem = document.elementFromPoint(e.clientX, e.clientY);
+    if (!elem || !elem.classList.contains('cell')) return;
+
+    // "Притворяемся", что мышь зашла в эту клетку
+    // (handleMouseEnter уже умеет добавлять клетку в выделение)
+    handleMouseEnter.call(elem, e);
+}
+
 
 		function handlePointerUp(e) {
     handleMouseUp.call(this, e);
